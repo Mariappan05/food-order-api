@@ -87,26 +87,59 @@ app.get('/api/fooditems', async (req, res) => {
 });
 // Save the Orders function
 
-app.post('/place_order', (req, res) => {
-  const { username, food_name, quantity, contact_number, total_price } = req.body;
-
-  // Input validation
-  if (!username || !food_name || !quantity || !contact_number || !total_price) {
-    return res.status(400).json({ message: 'All fields are required.' });
+app.post('/api/orders', async (req, res) => {
+  try {
+    const { username, food_name, quantity, contact_number, total_price } = req.body;
+    
+    const [result] = await pool.query(
+      `INSERT INTO orders 
+      (username, food_name, quantity, contact_number, total_price) 
+      VALUES (?, ?, ?, ?, ?)`,
+      [username, food_name, quantity, contact_number, total_price]
+    );
+    
+    res.status(201).json({
+      message: 'Order placed successfully',
+      orderId: result.insertId
+    });
+  } catch (error) {
+    console.error('Error placing order:', error);
+    res.status(500).json({ 
+      error: 'Failed to place order', 
+      details: error.message 
+    });
   }
+});
 
-  // Insert query
-  const query = `INSERT INTO orders (username, food_name, quantity, contact_number, total_price) VALUES (?, ?, ?, ?, ?)`;
-  const values = [username, food_name, quantity, contact_number, total_price];
+// Endpoint to fetch all orders
+app.get('/api/orders', async (req, res) => {
+  try {
+    const [results] = await pool.query('SELECT * FROM orders ORDER BY order_time DESC');
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch orders', 
+      details: error.message 
+    });
+  }
+});
 
-  db.query(query, values, (err, result) => {
-    if (err) {
-      console.error('Error inserting order into database:', err);
-      return res.status(500).json({ message: 'Failed to place the order.' });
-    }
-
-    res.status(200).json({ message: 'Order placed successfully!', orderId: result.insertId });
-  });
+// Endpoint to fetch orders by username
+app.get('/api/orders/:username', async (req, res) => {
+  try {
+    const [results] = await pool.query(
+      'SELECT * FROM orders WHERE username = ? ORDER BY order_time DESC', 
+      [req.params.username]
+    );
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch user orders', 
+      details: error.message 
+    });
+  }
 });
 
 // Start Server
