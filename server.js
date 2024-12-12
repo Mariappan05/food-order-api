@@ -188,6 +188,9 @@ app.post('/api/signup', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { user_name, password } = req.body;
+    
+    // Log the received data (for debugging)
+    console.log('Received login attempt for user:', user_name);
 
     // Input validation
     if (!user_name || !password) {
@@ -229,6 +232,7 @@ app.post('/api/login', async (req, res) => {
     });
   }
 });
+
 
 
 // Start Server
