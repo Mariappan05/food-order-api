@@ -15,7 +15,7 @@ const db = mysql.createConnection({
   user: 'root', // Your MySQL username
   password: 'madan@2004', // Your MySQL password
   database: 'FoodOrderDB', // Your database name
-  connectTimeout: 10000,
+  connectTimeout: 30000,
 });
 
 // Connect to MySQL with error handling
