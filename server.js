@@ -14,7 +14,8 @@ const db = mysql.createConnection({
   host: 'FoodOrderDB.onrender.com', // Your database host
   user: 'root', // Your MySQL username
   password: 'madan@2004', // Your MySQL password
-  database: 'FoodOrderDB' // Your database name
+  database: 'FoodOrderDB', // Your database name
+  connectTimeout: 10000,
 });
 
 // Connect to MySQL with error handling
