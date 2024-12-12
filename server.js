@@ -6,32 +6,31 @@ const cors = require('cors');
 
 const app = express();
 const port = process.env.PORT || 12000;
+
+// Middleware
 app.use(cors());
+app.use(express.json());
 
-// Determine which database to use based on environment variable
-const useRailwayDb = process.env.USE_RAILWAY_DB === 'true'; // Set USE_RAILWAY_DB=true in your .env for Railway
+// Database Configuration
+const dbConfig = process.env.USE_RAILWAY_DB === 'true' 
+  ? {
+      uri: process.env.DATABASE_URL,
+      connectionLimit: 10,
+      connectTimeout: 60000,
+    }
+  : {
+      host: process.env.LOCAL_DB_HOST || 'localhost',
+      user: process.env.LOCAL_DB_USER || 'root',
+      password: process.env.LOCAL_DB_PASSWORD,
+      database: process.env.LOCAL_DB_NAME || 'food_order',
+      port: process.env.LOCAL_DB_PORT || 3306,
+      connectionLimit: 10,
+      connectTimeout: 60000,
+    };
 
-let pool;
-if (useRailwayDb) {
-  pool = mysql.createPool({
-    uri: process.env.DATABASE_URL,
-    connectionLimit: 10,
-    connectTimeout: 60000,
-  });
-} else {
-  pool = mysql.createPool({
-    host: process.env.LOCAL_DB_HOST || 'localhost',
-    user: process.env.LOCAL_DB_USER || 'root',
-    password: process.env.LOCAL_DB_PASSWORD || 'madan@2004', // Your local password
-    database: process.env.LOCAL_DB_NAME || 'food_order',
-    port: process.env.LOCAL_DB_PORT || 3306,
-    connectionLimit: 10,
-    connectTimeout: 60000,
-  });
-}
+const pool = mysql.createPool(dbConfig);
 
-
-// Async function to handle database initialization
+// Database Initialization Function
 async function initializeDatabase() {
   try {
     const connection = await pool.getConnection();
@@ -62,7 +61,7 @@ async function initializeDatabase() {
   }
 }
 
-// Connect to MySQL and then initialize the database
+// Database Connection and Initialization
 pool.getConnection()
   .then(async (connection) => {
     console.log('Connected to database successfully');
@@ -73,18 +72,21 @@ pool.getConnection()
     console.error('Error connecting to the database:', err);
   });
 
-
+// API Endpoint to Fetch Food Items
 app.get('/api/fooditems', async (req, res) => {
   try {
     const [results] = await pool.query('SELECT * FROM FoodItems');
     res.json(results);
   } catch (error) {
     console.error('Error fetching food items:', error);
-    res.status(500).json({ error: 'Failed to fetch food items', details: error.message });
+    res.status(500).json({ 
+      error: 'Failed to fetch food items', 
+      details: error.message 
+    });
   }
 });
 
-
+// Start Server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
