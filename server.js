@@ -11,13 +11,13 @@ app.use(cors());
 
 // Create a MySQL connection
 const db = mysql.createConnection({
-  host: 'FoodOrderDB.onrender.com',
+  host: 'FoodOrderDB.onrender.com', // Your database host
   user: 'root', // Your MySQL username
   password: 'madan@2004', // Your MySQL password
-  database: 'FoodOrderDB'
+  database: 'FoodOrderDB' // Your database name
 });
 
-// Connect to MySQL
+// Connect to MySQL with error handling
 db.connect((err) => {
   if (err) {
     console.error('Error connecting to the database:', err);
@@ -28,6 +28,12 @@ db.connect((err) => {
 
 // Endpoint to fetch food items
 app.get('/api/fooditems', (req, res) => {
+  // Check if the connection is open
+  if (db.state === 'disconnected') {
+    console.error('Database connection is closed');
+    return res.status(500).json({ error: 'Database connection is closed' });
+  }
+
   const query = 'SELECT * FROM FoodItems';
   db.query(query, (err, results) => {
     if (err) {
