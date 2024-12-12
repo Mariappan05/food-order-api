@@ -184,6 +184,53 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
+// Add login function
+app.post('/api/login', async (req, res) => {
+  try {
+    const { user_name, password } = req.body;
+
+    // Input validation
+    if (!user_name || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username and password are required'
+      });
+    }
+
+    // Check user credentials
+    const [users] = await pool.query(
+      'SELECT id, username FROM users WHERE username = ? AND password = ?',
+      [user_name, password]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
+      });
+    }
+
+    // User found - send success response
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: users[0].id,
+        username: users[0].username
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during login',
+      error: error.message
+    });
+  }
+});
+
+
 // Start Server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
