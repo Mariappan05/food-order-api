@@ -11,7 +11,7 @@ app.use(cors());
 
 // Create a MySQL connection
 const db = mysql.createConnection({
-  host: 'FoodOrderDB.onrender.com', // Your database host
+  host: 'food_order.onrender.com', // Your database host
   user: 'root', // Your MySQL username
   password: 'madan@2004', // Your MySQL password
   database: 'FoodOrderDB', // Your database name
