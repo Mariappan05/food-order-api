@@ -87,7 +87,7 @@ app.get('/api/fooditems', async (req, res) => {
 });
 // Save the Orders function
 
-app.post('/api/place_order', (req, res) => {
+app.post('/place_order', (req, res) => {
   const { username, food_name, quantity, contact_number, total_price } = req.body;
 
   // Input validation
