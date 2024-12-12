@@ -169,7 +169,7 @@ app.post('/api/signup', async (req, res) => {
       [username, mobile_number, password]
     );
 
-    res.status(201).json({
+    res.status(200).json({
       message: 'User registered successfully',
       userId: result.insertId
     });
