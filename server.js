@@ -142,6 +142,47 @@ app.get('/api/orders/:username', async (req, res) => {
   }
 });
 
+//Signup user function
+
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { username, mobile_number, password } = req.body;
+
+    // Validate input
+    if (!username || !mobile_number || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Check if user already exists
+    const [existingUsers] = await pool.query(
+      'SELECT * FROM users WHERE username = ? OR mobile_number = ?',
+      [username, mobile_number]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(409).json({ error: 'Username or mobile number already exists' });
+    }
+
+    // Insert new user
+    const [result] = await pool.query(
+      'INSERT INTO users (username, mobile_number, password) VALUES (?, ?, ?)',
+      [username, mobile_number, password]
+    );
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      userId: result.insertId
+    });
+
+  } catch (error) {
+    console.error('Error during signup:', error);
+    res.status(500).json({
+      error: 'Failed to register user',
+      details: error.message
+    });
+  }
+});
+
 // Start Server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
