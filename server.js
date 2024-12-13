@@ -87,6 +87,7 @@ app.get('/api/fooditems', async (req, res) => {
 });
 // Save the Orders function
 
+
 app.post('/api/orders', async (req, res) => {
   try {
     const { username, food_name, quantity, contact_number, address, total_price } = req.body;
@@ -188,23 +189,20 @@ app.post('/api/signup', async (req, res) => {
 // Add login function
 app.post('/api/login', async (req, res) => {
   try {
-    const { user_name, password } = req.body;
-    
-    // Log the received data (for debugging)
-    console.log('Received login attempt for user:', user_name);
+    const { username, password } = req.body;  // Changed from user_name to username
 
-    // Input validation
-    if (!user_name || !password) {
+    console.log('Received login attempt for user:', username);
+
+    if (!username || !password) {
       return res.status(400).json({
         success: false,
         message: 'Username and password are required'
       });
     }
 
-    // Check user credentials
     const [users] = await pool.query(
       'SELECT id, username FROM users WHERE username = ? AND password = ?',
-      [user_name, password]
+      [username, password]
     );
 
     if (users.length === 0) {
@@ -214,7 +212,6 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
-    // User found - send success response
     res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -233,6 +230,7 @@ app.post('/api/login', async (req, res) => {
     });
   }
 });
+
 
 
 
