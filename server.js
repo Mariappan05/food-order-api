@@ -87,16 +87,23 @@ app.get('/api/fooditems', async (req, res) => {
 });
 // Save the Orders function
 
-
 app.post('/api/orders', async (req, res) => {
   try {
-    const { username, food_name, quantity, contact_number, address, total_price } = req.body;
+    const { 
+      username, 
+      food_name, 
+      quantity, 
+      contact_number, 
+      address, 
+      total_price,
+      image_url 
+    } = req.body;
    
     const [result] = await pool.query(
-      `INSERT INTO orders 
-      (username, food_name, quantity, contact_number, address, total_price)
-      VALUES (?, ?, ?, ?, ?, ?)`,
-      [username, food_name, quantity, contact_number, address, total_price]
+      `INSERT INTO orders
+      (username, food_name, quantity, contact_number, address, total_price, image_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [username, food_name, quantity, contact_number, address, total_price, image_url]
     );
    
     res.status(201).json({
@@ -111,6 +118,7 @@ app.post('/api/orders', async (req, res) => {
     });
   }
 });
+
 
 
 // Endpoint to fetch all orders
