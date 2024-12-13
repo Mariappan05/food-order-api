@@ -89,27 +89,28 @@ app.get('/api/fooditems', async (req, res) => {
 
 app.post('/api/orders', async (req, res) => {
   try {
-    const { username, food_name, quantity, contact_number, total_price } = req.body;
-    
+    const { username, food_name, quantity, contact_number, address, total_price } = req.body;
+   
     const [result] = await pool.query(
       `INSERT INTO orders 
-      (username, food_name, quantity, contact_number, total_price) 
-      VALUES (?, ?, ?, ?, ?)`,
-      [username, food_name, quantity, contact_number, total_price]
+      (username, food_name, quantity, contact_number, address, total_price)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+      [username, food_name, quantity, contact_number, address, total_price]
     );
-    
+   
     res.status(201).json({
       message: 'Order placed successfully',
       orderId: result.insertId
     });
   } catch (error) {
     console.error('Error placing order:', error);
-    res.status(500).json({ 
-      error: 'Failed to place order', 
-      details: error.message 
+    res.status(500).json({
+      error: 'Failed to place order',
+      details: error.message
     });
   }
 });
+
 
 // Endpoint to fetch all orders
 app.get('/api/orders', async (req, res) => {
@@ -185,30 +186,53 @@ app.post('/api/signup', async (req, res) => {
 });
 
 // Add login function
-app.post('/api/orders', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
-    const { username, food_name, quantity, contact_number, address, total_price } = req.body;
-   
-    const [result] = await pool.query(
-      `INSERT INTO orders 
-      (username, food_name, quantity, contact_number, address, total_price)
-      VALUES (?, ?, ?, ?, ?, ?)`,
-      [username, food_name, quantity, contact_number, address, total_price]
+    const { user_name, password } = req.body;
+    
+    // Log the received data (for debugging)
+    console.log('Received login attempt for user:', user_name);
+
+    // Input validation
+    if (!user_name || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username and password are required'
+      });
+    }
+
+    // Check user credentials
+    const [users] = await pool.query(
+      'SELECT id, username FROM users WHERE username = ? AND password = ?',
+      [user_name, password]
     );
-   
-    res.status(201).json({
-      message: 'Order placed successfully',
-      orderId: result.insertId
+
+    if (users.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
+      });
+    }
+
+    // User found - send success response
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: users[0].id,
+        username: users[0].username
+      }
     });
+
   } catch (error) {
-    console.error('Error placing order:', error);
+    console.error('Login error:', error);
     res.status(500).json({
-      error: 'Failed to place order',
-      details: error.message
+      success: false,
+      message: 'Server error during login',
+      error: error.message
     });
   }
 });
-
 
 
 
