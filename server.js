@@ -231,6 +231,46 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Add reset password function
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { username, mobileNumber, password } = req.body;
+
+    console.log('Received password reset attempt for user:', username);
+
+    if (!username || !mobileNumber || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username, mobile number and new password are required'
+      });
+    }
+
+    const [result] = await pool.query(
+      'UPDATE users SET password = ? WHERE username = ? AND mobile_number = ?',
+      [password, username, mobileNumber]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found with provided username and mobile number'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset',
+      error: error.message
+    });
+  }
+});
 
 
 
