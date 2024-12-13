@@ -135,6 +135,39 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
+// API endpoint to delete an order
+app.delete('/api/orders/:orderId', async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+    
+    const [result] = await pool.query(
+      'DELETE FROM orders WHERE id = ?',
+      [orderId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete order',
+      error: error.message
+    });
+  }
+});
+
+
 // Endpoint to fetch orders by username
 app.get('/api/orders/:username', async (req, res) => {
   try {
