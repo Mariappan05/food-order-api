@@ -185,6 +185,53 @@ app.get('/api/orders/:username', async (req, res) => {
   }
 });
 
+// Add item to cart
+app.post('/api/cart/add', async (req, res) => {
+  try {
+    const { username, food_name, price, image_url } = req.body;
+    
+    const [result] = await pool.query(
+      'INSERT INTO cart (username, food_name, price, image_url) VALUES (?, ?, ?, ?)',
+      [username, food_name, price, image_url]
+    );
+    
+    res.status(201).json({
+      success: true,
+      message: 'Item added to cart',
+      cartItemId: result.insertId
+    });
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add item to cart',
+      error: error.message
+    });
+  }
+});
+
+// Get cart items for a user
+app.get('/api/cart/:username', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    const [cartItems] = await pool.query(
+      'SELECT * FROM cart WHERE username = ? ORDER BY created_at DESC',
+      [username]
+    );
+    
+    res.status(200).json(cartItems);
+  } catch (error) {
+    console.error('Error fetching cart items:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch cart items',
+      error: error.message
+    });
+  }
+});
+
+
 //Signup user function
 
 app.post('/api/signup', async (req, res) => {
