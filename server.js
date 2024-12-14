@@ -210,6 +210,55 @@ app.post('/api/cart/add', async (req, res) => {
   }
 });
 
+app.delete('/api/cart/remove/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [result] = await pool.query(
+      'DELETE FROM cart WHERE id = ?',
+      [id]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Item removed from cart',
+      affectedRows: result.affectedRows
+    });
+  } catch (error) {
+    console.error('Error removing from cart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove item from cart',
+      error: error.message
+    });
+  }
+});
+
+// Clear Cart
+app.delete('/api/cart/clear/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const [result] = await pool.query(
+      'DELETE FROM cart WHERE username = ?',
+      [username]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Cart cleared successfully',
+      affectedRows: result.affectedRows
+    });
+  } catch (error) {
+    console.error('Error clearing cart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear cart',
+      error: error.message
+    });
+  }
+});
+
 // Get cart items for a user
 app.get('/api/cart/:username', async (req, res) => {
   try {
