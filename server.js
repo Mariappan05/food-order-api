@@ -85,6 +85,64 @@ app.get('/api/fooditems', async (req, res) => {
     });
   }
 });
+
+//Deals page functions
+
+app.get('/api/deals', async (req, res) => {
+  try {
+    const [results] = await pool.query(`
+      SELECT 
+        id,
+        name,
+        image_url,
+        original_price,
+        discounted_price,
+        size,
+        discount,
+        created_at 
+      FROM deals 
+      ORDER BY created_at DESC
+    `);
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching deals:', error);
+    res.status(500).json({
+      error: 'Failed to fetch deals',
+      details: error.message
+    });
+  }
+});
+
+app.put('/api/deals/update', async (req, res) => {
+  try {
+    const { id, original_price, discounted_price, size } = req.body;
+    
+    const [result] = await pool.query(`
+      UPDATE deals 
+      SET 
+        original_price = ?,
+        discounted_price = ?,
+        size = ?,
+        discount = CONCAT('₹', ROUND(original_price - discounted_price), ' OFF')
+      WHERE id = ?
+    `, [original_price, discounted_price, size, id]);
+
+    if (result.affectedRows > 0) {
+      res.json({ success: true, message: 'Deal updated successfully' });
+    } else {
+      res.status(404).json({ error: 'Deal not found' });
+    }
+  } catch (error) {
+    console.error('Error updating deal:', error);
+    res.status(500).json({
+      error: 'Failed to update deal',
+      details: error.message
+    });
+  }
+});
+
+
+
 // Save the Orders function
 
 app.post('/api/orders', async (req, res) => {
