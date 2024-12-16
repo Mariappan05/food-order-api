@@ -88,6 +88,26 @@ app.get('/api/fooditems', async (req, res) => {
 
 //Deals page functions
 
+// Add new deal
+app.post('/api/deals/create', async (req, res) => {
+  try {
+    const { name, image_url, original_price, discounted_price, size } = req.body;
+    const discount = `${Math.round(((original_price - discounted_price) / original_price) * 100)}% OFF`;
+    
+    const [result] = await pool.query(
+      'INSERT INTO deals (name, image_url, original_price, discounted_price, size, discount) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, image_url, original_price, discounted_price, size, discount]
+    );
+    
+    res.status(201).json({ message: 'Deal created successfully', id: result.insertId });
+  } catch (error) {
+    console.error('Error creating deal:', error);
+    res.status(500).json({ error: 'Failed to create deal', details: error.message });
+  }
+});
+
+
+
 app.get('/api/deals', async (req, res) => {
   try {
     const [results] = await pool.query(`
