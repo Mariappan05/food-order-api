@@ -86,6 +86,63 @@ app.get('/api/fooditems', async (req, res) => {
   }
 });
 
+// Add new food item
+app.post('/api/fooditems', async (req, res) => {
+  try {
+    const { name, price, image_url } = req.body;
+    const [result] = await pool.query(
+      'INSERT INTO fooditems (name, price, image_url) VALUES (?, ?, ?)',
+      [name, price, image_url]
+    );
+    
+    res.status(201).json({
+      success: true,
+      message: 'Food item added successfully',
+      id: result.insertId
+    });
+  } catch (error) {
+    console.error('Error adding food item:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add food item',
+      error: error.message
+    });
+  }
+});
+
+// Edit food item
+app.put('/api/fooditems/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, image_url } = req.body;
+    
+    const [result] = await pool.query(
+      'UPDATE fooditems SET name = ?, price = ?, image_url = ? WHERE id = ?',
+      [name, price, image_url, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Food item not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Food item updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating food item:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update food item',
+      error: error.message
+    });
+  }
+});
+
+
 //Deals page functions
 
 // Add new deal
