@@ -75,7 +75,7 @@ pool.getConnection()
 // API Endpoint to Fetch Food Items
 app.get('/api/fooditems', async (req, res) => {
   try {
-    const [results] = await pool.query('SELECT * FROM FoodItems');
+    const [results] = await pool.query('SELECT * FROM fooditems');
     res.json(results);
   } catch (error) {
     console.error('Error fetching food items:', error);
