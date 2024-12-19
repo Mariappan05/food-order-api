@@ -142,6 +142,82 @@ app.put('/api/fooditems/:id', async (req, res) => {
   }
 });
 
+// Create a new food variety
+app.post('/api/foodvarieties/create', async (req, res) => {
+  try {
+    const { category_id, name, price, image_url, description } = req.body;
+    const [result] = await pool.query(
+      'INSERT INTO food_varieties (category_id, name, price, image_url, description) VALUES (?, ?, ?, ?, ?)',
+      [category_id, name, price, image_url, description]
+    );
+    res.status(201).json({ message: 'Food variety created successfully', id: result.insertId });
+  } catch (error) {
+    console.error('Error creating food variety:', error);
+    res.status(500).json({ error: 'Failed to create food variety', details: error.message });
+  }
+});
+
+// Get all varieties by category
+app.get('/api/foodvarieties/:category', async (req, res) => {
+  try {
+    const category = req.params.category;
+    const [varieties] = await pool.query(
+      `SELECT fv.* FROM food_varieties fv 
+       JOIN food_items fi ON fv.category_id = fi.id 
+       WHERE fi.name = ?`,
+      [category]
+    );
+    res.status(200).json(varieties);
+  } catch (error) {
+    console.error('Error fetching varieties:', error);
+    res.status(500).json({ error: 'Failed to fetch varieties', details: error.message });
+  }
+});
+
+// Update a food variety
+app.put('/api/foodvarieties/:id', async (req, res) => {
+  try {
+    const { name, price, image_url, description } = req.body;
+    const [result] = await pool.query(
+      'UPDATE food_varieties SET name = ?, price = ?, image_url = ?, description = ? WHERE id = ?',
+      [name, price, image_url, description, req.params.id]
+    );
+    res.status(200).json({ message: 'Food variety updated successfully' });
+  } catch (error) {
+    console.error('Error updating food variety:', error);
+    res.status(500).json({ error: 'Failed to update food variety', details: error.message });
+  }
+});
+
+// Delete a food variety
+app.delete('/api/foodvarieties/:id', async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'DELETE FROM food_varieties WHERE id = ?',
+      [req.params.id]
+    );
+    res.status(200).json({ message: 'Food variety deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting food variety:', error);
+    res.status(500).json({ error: 'Failed to delete food variety', details: error.message });
+  }
+});
+
+// Get food variety details
+app.get('/api/foodvarieties/details/:id', async (req, res) => {
+  try {
+    const [variety] = await pool.query(
+      'SELECT * FROM food_varieties WHERE id = ?',
+      [req.params.id]
+    );
+    res.status(200).json(variety[0]);
+  } catch (error) {
+    console.error('Error fetching variety details:', error);
+    res.status(500).json({ error: 'Failed to fetch variety details', details: error.message });
+  }
+});
+
+
 
 //Deals page functions
 
