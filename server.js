@@ -163,7 +163,7 @@ app.get('/api/foodvarieties/:category', async (req, res) => {
     const category = req.params.category;
     const [varieties] = await pool.query(
       `SELECT fv.* FROM food_varieties fv 
-       JOIN food_items fi ON fv.category_id = fi.id 
+       JOIN fooditems fi ON fv.category_id = fi.id 
        WHERE fi.name = ?`,
       [category]
     );
