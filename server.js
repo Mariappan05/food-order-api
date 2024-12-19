@@ -145,15 +145,36 @@ app.put('/api/fooditems/:id', async (req, res) => {
 // Create a new food variety
 app.post('/api/foodvarieties/create', async (req, res) => {
   try {
-    const { category_id, name, price, image_url, description } = req.body;
+    const { category, name, price, image_url, description } = req.body;
+    
+    // First get category_id from fooditems table
+    const [categoryResult] = await pool.query(
+      'SELECT id FROM fooditems WHERE name = ?',
+      [category]
+    );
+
+    if (categoryResult.length === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    const category_id = categoryResult[0].id;
+
+    // Then insert into food_varieties
     const [result] = await pool.query(
       'INSERT INTO food_varieties (category_id, name, price, image_url, description) VALUES (?, ?, ?, ?, ?)',
       [category_id, name, price, image_url, description]
     );
-    res.status(201).json({ message: 'Food variety created successfully', id: result.insertId });
+    
+    res.status(201).json({ 
+      message: 'Food variety created successfully', 
+      id: result.insertId 
+    });
   } catch (error) {
     console.error('Error creating food variety:', error);
-    res.status(500).json({ error: 'Failed to create food variety', details: error.message });
+    res.status(500).json({ 
+      error: 'Failed to create food variety', 
+      details: error.message 
+    });
   }
 });
 
