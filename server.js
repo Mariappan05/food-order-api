@@ -349,6 +349,36 @@ app.put('/api/deals/update', async (req, res) => {
   }
 });
 
+// Delete deal
+app.delete('/api/deals/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await pool.query(
+      'DELETE FROM deals WHERE id = ?',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Deal not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Deal deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting deal:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete deal',
+      error: error.message
+    });
+  }
+});
 
 
 // Save the Orders function
