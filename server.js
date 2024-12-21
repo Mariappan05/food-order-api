@@ -87,14 +87,16 @@ app.get('/api/fooditems', async (req, res) => {
 });
 
 // Add new food item
+// Add food item
 app.post('/api/fooditems', async (req, res) => {
   try {
-    const { name, price, image_url } = req.body;
+    const { name, price, image_url, description, category } = req.body;
+
     const [result] = await pool.query(
-      'INSERT INTO fooditems (name, price, image_url) VALUES (?, ?, ?)',
-      [name, price, image_url]
+      'INSERT INTO fooditems (name, price, image_url, description, category) VALUES (?, ?, ?, ?, ?)',
+      [name, price, image_url, description, category]
     );
-    
+
     res.status(201).json({
       success: true,
       message: 'Food item added successfully',
@@ -114,11 +116,11 @@ app.post('/api/fooditems', async (req, res) => {
 app.put('/api/fooditems/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, image_url } = req.body;
-    
+    const { name, price, image_url, description, category } = req.body;
+
     const [result] = await pool.query(
-      'UPDATE fooditems SET name = ?, price = ?, image_url = ? WHERE id = ?',
-      [name, price, image_url, id]
+      'UPDATE fooditems SET name = ?, price = ?, image_url = ?, description = ?, category = ? WHERE id = ?',
+      [name, price, image_url, description, category, id]
     );
 
     if (result.affectedRows === 0) {
@@ -141,6 +143,38 @@ app.put('/api/fooditems/:id', async (req, res) => {
     });
   }
 });
+
+// Delete food item
+app.delete('/api/fooditems/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await pool.query(
+      'DELETE FROM fooditems WHERE id = ?',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Food item not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Food item deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting food item:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete food item',
+      error: error.message
+    });
+  }
+});
+
 
 // Create a new food variety
 app.post('/api/foodvarieties/create', async (req, res) => {
