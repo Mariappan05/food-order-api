@@ -608,7 +608,6 @@ app.get('/api/cart/:username', async (req, res) => {
   }
 });
 
-
 //Signup user function
 
 app.post('/api/signup', async (req, res) => {
@@ -737,6 +736,66 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
+//profile page
+// Get user details
+app.get('/api/users/:username', async (req, res) => {
+  try {
+    const [user] = await pool.query(
+      'SELECT username, mobile_number FROM users WHERE username = ?',
+      [req.params.username]
+    );
+    
+    if (user.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: user[0]
+    });
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    res.status(500).json({
+      success: false, 
+      message: 'Failed to fetch user details',
+      error: error.message
+    });
+  }
+});
+
+// Update user details
+app.put('/api/users/:username', async (req, res) => {
+  try {
+    const { username, mobile_number } = req.body;
+    
+    const [result] = await pool.query(
+      'UPDATE users SET mobile_number = ? WHERE username = ?',
+      [mobile_number, username]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User details updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating user details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user details',
+      error: error.message
+    });
+  }
+});
 
 
 // Start Server
