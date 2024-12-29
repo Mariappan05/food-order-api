@@ -797,6 +797,92 @@ app.put('/api/users/:username', async (req, res) => {
   }
 });
 
+//Email Function 
+
+// Add to your existing server.js
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD
+  }
+});
+
+const otpStore = new Map();
+
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+app.post('/api/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const otp = generateOTP();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Password Reset OTP',
+      text: `Your OTP for password reset is: ${otp}`
+    };
+
+    await transporter.sendMail(mailOptions);
+    otpStore.set(email, {
+      otp,
+      timestamp: Date.now()
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send OTP',
+      error: error.message
+    });
+  }
+});
+
+app.post('/api/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const storedData = otpStore.get(email);
+
+    if (!storedData) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP expired or not found'
+      });
+    }
+
+    if (storedData.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP'
+      });
+    }
+
+    otpStore.delete(email);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Verification failed',
+      error: error.message
+    });
+  }
+});
+
+
+
 
 // Start Server
 app.listen(port, () => {
