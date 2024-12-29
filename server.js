@@ -798,8 +798,6 @@ app.put('/api/users/:username', async (req, res) => {
 });
 
 //Email Function 
-
-// Add to your existing server.js
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -817,72 +815,83 @@ function generateOTP() {
 }
 
 app.post('/api/send-otp', async (req, res) => {
+  const { email } = req.body;
+  const otp = generateOTP();
+  
   try {
-    const { email } = req.body;
-    const otp = generateOTP();
-    
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: '"FastFood" <foodshop674@gmail.com>',
       to: email,
-      subject: 'Password Reset OTP',
-      text: `Your OTP for password reset is: ${otp}`
+      subject: 'Your OTP for Password Reset',
+      html: `
+        <h2>Password Reset OTP</h2>
+        <p>Your OTP for password reset is: <strong>${otp}</strong></p>
+        <p>This OTP will expire in 10 minutes.</p>
+      `
     };
 
     await transporter.sendMail(mailOptions);
+    
     otpStore.set(email, {
       otp,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      attempts: 0
     });
 
     res.status(200).json({
       success: true,
-      message: 'OTP sent successfully'
+      message: 'OTP sent successfully to your email'
     });
   } catch (error) {
+    console.error('Email sending error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to send OTP',
-      error: error.message
+      message: 'Failed to send OTP email'
     });
   }
 });
 
 app.post('/api/verify-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    const storedData = otpStore.get(email);
+  const { email, otp } = req.body;
+  const storedData = otpStore.get(email);
 
-    if (!storedData) {
-      return res.status(400).json({
-        success: false,
-        message: 'OTP expired or not found'
-      });
-    }
+  if (!storedData) {
+    return res.status(400).json({
+      success: false,
+      message: 'OTP expired or not found'
+    });
+  }
 
-    if (storedData.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid OTP'
-      });
-    }
-
+  if (Date.now() - storedData.timestamp > 600000) {
     otpStore.delete(email);
+    return res.status(400).json({
+      success: false,
+      message: 'OTP has expired'
+    });
+  }
 
-    res.status(200).json({
+  if (storedData.otp === otp) {
+    otpStore.delete(email);
+    return res.status(200).json({
       success: true,
       message: 'OTP verified successfully'
     });
-  } catch (error) {
-    res.status(500).json({
+  }
+
+  storedData.attempts += 1;
+  if (storedData.attempts >= 3) {
+    otpStore.delete(email);
+    return res.status(400).json({
       success: false,
-      message: 'Verification failed',
-      error: error.message
+      message: 'Too many failed attempts. Please request a new OTP'
     });
   }
+
+  res.status(400).json({
+    success: false,
+    message: 'Invalid OTP'
+  });
 });
-
-
-
 
 // Start Server
 app.listen(port, () => {
