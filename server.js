@@ -2,7 +2,6 @@ require('dotenv').config();
 
 const express = require('express');
 const mysql = require('mysql2/promise');
-const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
@@ -18,9 +17,6 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
-
-// CORS configuration
-
 
 // Database Configuration
 const dbConfig = process.env.USE_RAILWAY_DB === 'true' 
