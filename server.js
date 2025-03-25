@@ -9,7 +9,6 @@ const app = express();
 const port = process.env.PORT || 12000;
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 
 // Rate limiting
@@ -21,11 +20,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
-app.use(cors({
-  origin: ['https://your-frontend-domain.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+
 
 // Database Configuration
 const dbConfig = process.env.USE_RAILWAY_DB === 'true' 
