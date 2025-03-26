@@ -24,6 +24,9 @@ const dbConfig = process.env.USE_RAILWAY_DB === 'true'
       uri: process.env.DATABASE_URL,
       connectionLimit: 10,
       connectTimeout: 60000,
+      ssl: {
+        rejectUnauthorized: false
+      }
     }
   : {
       host: process.env.LOCAL_DB_HOST || 'localhost',
@@ -35,48 +38,30 @@ const dbConfig = process.env.USE_RAILWAY_DB === 'true'
       connectTimeout: 60000,
     };
 
+console.log('Database Configuration:', {
+  useRailway: process.env.USE_RAILWAY_DB,
+  databaseUrl: process.env.DATABASE_URL ? 'Present' : 'Missing',
+  host: dbConfig.host || 'Using URI',
+  user: dbConfig.user || 'Using URI',
+  database: dbConfig.database || 'Using URI'
+});
+
 const pool = mysql.createPool(dbConfig);
-
-// Database Initialization Function
-// async function initializeDatabase() {
-//   try {
-//     const connection = await pool.getConnection();
-//     await connection.query(`
-//       CREATE TABLE IF NOT EXISTS FoodItems (
-//         id INT AUTO_INCREMENT PRIMARY KEY,
-//         name VARCHAR(255) NOT NULL,
-//         description TEXT,
-//         price DECIMAL(10, 2) NOT NULL,
-//         category VARCHAR(100),
-//         image_url VARCHAR(255)
-//       )
-//     `);
-
-//     const [countResult] = await connection.query('SELECT COUNT(*) as count FROM FoodItems');
-//     if (countResult[0].count === 0) {
-//       const sampleData = [
-//         ['Pizza Margherita', 'Classic tomato and mozzarella pizza', 10.99, 'Pizza', 'https://example.com/pizza.jpg'],
-//         ['Burger', 'Juicy beef burger with cheese', 8.50, 'Burger', 'https://example.com/burger.jpg'],
-//         ['Salad', 'Fresh garden salad', 6.99, 'Salad', 'https://example.com/salad.jpg']
-//       ];
-//       await connection.query(`INSERT INTO FoodItems (name, description, price, category, image_url) VALUES ?`, [sampleData]);
-//       console.log('Inserted sample food items');
-//     }
-//     connection.release();
-//   } catch (error) {
-//     console.error('Error initializing database:', error);
-//   }
-// }
 
 // Database Connection and Initialization
 pool.getConnection()
-  .then(async (connection) => {
+  .then((connection) => {
     console.log('Connected to database successfully');
     connection.release();
-    await initializeDatabase();
   })
   .catch((err) => {
-    console.error('Error connecting to the database:', err);
+    console.error('Error connecting to the database:', {
+      message: err.message,
+      code: err.code,
+      errno: err.errno,
+      sqlState: err.sqlState,
+      sqlMessage: err.sqlMessage
+    });
   });
 
 // API Endpoint to Fetch Food Items
