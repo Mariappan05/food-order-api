@@ -19,59 +19,59 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Database Configuration
-const dbConfig = process.env.USE_RAILWAY_DB === 'true' 
-  ? {
-      uri: process.env.DATABASE_URL,
-      connectionLimit: 10,
-      connectTimeout: 60000,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    }
-  : {
-      host: process.env.LOCAL_DB_HOST || 'localhost',
-      user: process.env.LOCAL_DB_USER || 'root',
-      password: process.env.LOCAL_DB_PASSWORD,
-      database: process.env.LOCAL_DB_NAME || 'food_order',
-      port: process.env.LOCAL_DB_PORT || 3306,
-      connectionLimit: 10,
-      connectTimeout: 60000,
-    };
+const dbConfig = {
+  uri: process.env.DATABASE_URL,
+  connectionLimit: 10,
+  connectTimeout: 60000,
+  ssl: {
+    rejectUnauthorized: false
+  }
+};
 
 console.log('Database Configuration:', {
-  useRailway: process.env.USE_RAILWAY_DB,
-  databaseUrl: process.env.DATABASE_URL ? 'Present' : 'Missing',
-  host: dbConfig.host || 'Using URI',
-  user: dbConfig.user || 'Using URI',
-  database: dbConfig.database || 'Using URI'
+  databaseUrl: process.env.DATABASE_URL ? 'Present' : 'Missing'
 });
 
 // Create a single pool instance
 let pool;
 
-try {
-  pool = mysql.createPool(dbConfig);
-  console.log('Database pool created successfully');
-} catch (error) {
-  console.error('Error creating database pool:', error);
-}
+// Function to create database pool
+const createPool = () => {
+  try {
+    if (!pool) {
+      pool = mysql.createPool(dbConfig);
+      console.log('Database pool created successfully');
+    }
+    return pool;
+  } catch (error) {
+    console.error('Error creating database pool:', error);
+    throw error;
+  }
+};
 
 // Middleware to ensure database connection
 const ensureConnection = async (req, res, next) => {
   try {
     if (!pool) {
-      pool = mysql.createPool(dbConfig);
+      pool = createPool();
     }
     const connection = await pool.getConnection();
     connection.release();
     next();
   } catch (error) {
     console.error('Database connection error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Database connection failed',
-      error: error.message
-    });
+    // Try to recreate the pool on error
+    try {
+      pool = null;
+      pool = createPool();
+      next();
+    } catch (retryError) {
+      res.status(500).json({
+        success: false,
+        message: 'Database connection failed',
+        error: retryError.message
+      });
+    }
   }
 };
 
