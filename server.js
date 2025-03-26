@@ -46,23 +46,37 @@ console.log('Database Configuration:', {
   database: dbConfig.database || 'Using URI'
 });
 
-const pool = mysql.createPool(dbConfig);
+// Create a single pool instance
+let pool;
 
-// Database Connection and Initialization
-pool.getConnection()
-  .then((connection) => {
-    console.log('Connected to database successfully');
+try {
+  pool = mysql.createPool(dbConfig);
+  console.log('Database pool created successfully');
+} catch (error) {
+  console.error('Error creating database pool:', error);
+}
+
+// Middleware to ensure database connection
+const ensureConnection = async (req, res, next) => {
+  try {
+    if (!pool) {
+      pool = mysql.createPool(dbConfig);
+    }
+    const connection = await pool.getConnection();
     connection.release();
-  })
-  .catch((err) => {
-    console.error('Error connecting to the database:', {
-      message: err.message,
-      code: err.code,
-      errno: err.errno,
-      sqlState: err.sqlState,
-      sqlMessage: err.sqlMessage
+    next();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: error.message
     });
-  });
+  }
+};
+
+// Apply the middleware to all routes
+app.use(ensureConnection);
 
 // API Endpoint to Fetch Food Items
 app.get('/api/fooditems', async (req, res) => {
