@@ -3,12 +3,15 @@ require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const rateLimit = require('express-rate-limit');
+const nodemailer = require('nodemailer');
+const cors = require('cors');
 
 const app = express();
 const port = process.env.PORT || 12000;
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -913,6 +916,12 @@ app.post('/api/verify-otp', async (req, res) => {
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
+  });
+}
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
   });
 }
 
