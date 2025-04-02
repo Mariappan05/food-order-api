@@ -817,7 +817,7 @@ app.put('/api/users/:username', async (req, res) => {
 });
 
 //Email Function 
-const nodemailer = require('nodemailer');
+
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -913,17 +913,18 @@ app.post('/api/verify-otp', async (req, res) => {
 });
 
 // Start Server
+// Replace this:
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
   });
 }
 
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
-}
+// With this:
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
 
 // Export the Express app for Vercel
 module.exports = app;
+
