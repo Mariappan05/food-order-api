@@ -32,19 +32,14 @@ console.log('Database Configuration:', {
   databaseUrl: process.env.DATABASE_URL ? 'Present' : 'Missing'
 });
 
-// Create a single pool instance
-let pool;
-
-// Function to create database pool
-const createPool = () => {
+// Function to get database connection
+const getConnection = async () => {
   try {
-    if (!pool) {
-      pool = mysql.createPool(dbConfig);
-      console.log('Database pool created successfully');
-    }
-    return pool;
+    const connection = await mysql.createConnection(dbConfig);
+    console.log('Database connection created successfully');
+    return connection;
   } catch (error) {
-    console.error('Error creating database pool:', error);
+    console.error('Error creating database connection:', error);
     throw error;
   }
 };
@@ -52,36 +47,51 @@ const createPool = () => {
 // Middleware to ensure database connection
 const ensureConnection = async (req, res, next) => {
   try {
-    if (!pool) {
-      pool = createPool();
+    if (!req.db) {
+      req.db = await getConnection();
     }
-    const connection = await pool.getConnection();
-    connection.release();
     next();
   } catch (error) {
     console.error('Database connection error:', error);
-    // Try to recreate the pool on error
-    try {
-      pool = null;
-      pool = createPool();
-      next();
-    } catch (retryError) {
-      res.status(500).json({
-        success: false,
-        message: 'Database connection failed',
-        error: retryError.message
-      });
-    }
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: error.message
+    });
   }
+};
+
+// Middleware to close database connection
+const closeConnection = async (req, res, next) => {
+  try {
+    if (req.db) {
+      await req.db.end();
+      req.db = null;
+    }
+  } catch (error) {
+    console.error('Error closing database connection:', error);
+  }
+  next();
 };
 
 // Apply the middleware to all routes
 app.use(ensureConnection);
+app.use(closeConnection);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: err.message
+  });
+});
 
 // API Endpoint to Fetch Food Items
 app.get('/api/fooditems', async (req, res) => {
   try {
-    const [results] = await pool.query('SELECT * FROM fooditems');
+    const [results] = await req.db.query('SELECT * FROM fooditems');
     res.json(results);
   } catch (error) {
     console.error('Error fetching food items:', error);
@@ -94,11 +104,11 @@ app.get('/api/fooditems', async (req, res) => {
 
 // Add new food item
 // Add food item
-app.post('/api/fooditems', async (req, res) => {
+app.post('/api/fooditems', async (req, res) => {  
   try {
     const { name, price, image_url, description, category } = req.body;
 
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'INSERT INTO fooditems (name, price, image_url, description, category) VALUES (?, ?, ?, ?, ?)',
       [name, price, image_url, description, category]
     );
@@ -124,7 +134,7 @@ app.put('/api/fooditems/:id', async (req, res) => {
     const { id } = req.params;
     const { name, price, image_url, description, category } = req.body;
 
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'UPDATE fooditems SET name = ?, price = ?, image_url = ?, description = ?, category = ? WHERE id = ?',
       [name, price, image_url, description, category, id]
     );
@@ -155,7 +165,7 @@ app.delete('/api/fooditems/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'DELETE FROM fooditems WHERE id = ?',
       [id]
     );
@@ -188,7 +198,7 @@ app.post('/api/foodvarieties/create', async (req, res) => {
     const { category, name, price, image_url, description } = req.body;
     
     // First get category_id from fooditems table
-    const [categoryResult] = await pool.query(
+    const [categoryResult] = await req.db.query(
       'SELECT id FROM fooditems WHERE name = ?',
       [category]
     );
@@ -200,7 +210,7 @@ app.post('/api/foodvarieties/create', async (req, res) => {
     const category_id = categoryResult[0].id;
 
     // Then insert into food_varieties
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'INSERT INTO food_varieties (category_id, name, price, image_url, description) VALUES (?, ?, ?, ?, ?)',
       [category_id, name, price, image_url, description]
     );
@@ -222,7 +232,7 @@ app.post('/api/foodvarieties/create', async (req, res) => {
 app.get('/api/foodvarieties/:category', async (req, res) => {
   try {
     const category = req.params.category;
-    const [varieties] = await pool.query(
+    const [varieties] = await req.db.query(
       `SELECT fv.* FROM food_varieties fv 
        JOIN fooditems fi ON fv.category_id = fi.id 
        WHERE fi.name = ?`,
@@ -239,7 +249,7 @@ app.get('/api/foodvarieties/:category', async (req, res) => {
 app.put('/api/foodvarieties/:id', async (req, res) => {
   try {
     const { name, price, image_url, description } = req.body;
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'UPDATE food_varieties SET name = ?, price = ?, image_url = ?, description = ? WHERE id = ?',
       [name, price, image_url, description, req.params.id]
     );
@@ -253,7 +263,7 @@ app.put('/api/foodvarieties/:id', async (req, res) => {
 // Delete a food variety
 app.delete('/api/foodvarieties/:id', async (req, res) => {
   try {
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'DELETE FROM food_varieties WHERE id = ?',
       [req.params.id]
     );
@@ -267,7 +277,7 @@ app.delete('/api/foodvarieties/:id', async (req, res) => {
 // Get food variety details
 app.get('/api/foodvarieties/details/:id', async (req, res) => {
   try {
-    const [variety] = await pool.query(
+    const [variety] = await req.db.query(
       'SELECT * FROM food_varieties WHERE id = ?',
       [req.params.id]
     );
@@ -288,7 +298,7 @@ app.post('/api/deals/create', async (req, res) => {
     const { name, image_url, original_price, discounted_price, size } = req.body;
     const discount = `${Math.round(((original_price - discounted_price) / original_price) * 100)}% OFF`;
     
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'INSERT INTO deals (name, image_url, original_price, discounted_price, size, discount) VALUES (?, ?, ?, ?, ?, ?)',
       [name, image_url, original_price, discounted_price, size, discount]
     );
@@ -304,7 +314,7 @@ app.post('/api/deals/create', async (req, res) => {
 
 app.get('/api/deals', async (req, res) => {
   try {
-    const [results] = await pool.query(`
+    const [results] = await req.db.query(`
       SELECT 
         id,
         name,
@@ -331,7 +341,7 @@ app.put('/api/deals/update', async (req, res) => {
   try {
     const { id, original_price, discounted_price, size } = req.body;
     
-    const [result] = await pool.query(`
+    const [result] = await req.db.query(`
       UPDATE deals 
       SET 
         original_price = ?,
@@ -360,7 +370,7 @@ app.delete('/api/deals/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'DELETE FROM deals WHERE id = ?',
       [id]
     );
@@ -401,7 +411,7 @@ app.post('/api/orders', async (req, res) => {
       image_url 
     } = req.body;
    
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       `INSERT INTO orders
       (username, food_name, quantity, contact_number, address, total_price, image_url)
       VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -426,7 +436,7 @@ app.post('/api/orders', async (req, res) => {
 // Endpoint to fetch all orders
 app.get('/api/orders', async (req, res) => {
   try {
-    const [results] = await pool.query('SELECT * FROM orders ORDER BY order_time DESC');
+    const [results] = await req.db.query('SELECT * FROM orders ORDER BY order_time DESC');
     res.json(results);
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -442,7 +452,7 @@ app.delete('/api/orders/:orderId', async (req, res) => {
   try {
     const orderId = req.params.orderId;
     
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'DELETE FROM orders WHERE id = ?',
       [orderId]
     );
@@ -473,7 +483,7 @@ app.delete('/api/orders/:orderId', async (req, res) => {
 // Endpoint to fetch orders by username
 app.get('/api/orders/:username', async (req, res) => {
   try {
-    const [results] = await pool.query(
+    const [results] = await req.db.query(
       'SELECT * FROM orders WHERE username = ? ORDER BY order_time DESC', 
       [req.params.username]
     );
@@ -492,7 +502,7 @@ app.put('/api/orders/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'UPDATE orders SET status = ? WHERE id = ?',
       [status, id]
     );
@@ -524,7 +534,7 @@ app.post('/api/cart/add', async (req, res) => {
   try {
     const { username, food_name, price, image_url } = req.body;
     
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'INSERT INTO cart (username, food_name, price, image_url) VALUES (?, ?, ?, ?)',
       [username, food_name, price, image_url]
     );
@@ -548,7 +558,7 @@ app.delete('/api/cart/remove/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'DELETE FROM cart WHERE id = ?',
       [id]
     );
@@ -573,7 +583,7 @@ app.delete('/api/cart/clear/:username', async (req, res) => {
   try {
     const { username } = req.params;
     
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'DELETE FROM cart WHERE username = ?',
       [username]
     );
@@ -598,7 +608,7 @@ app.get('/api/cart/:username', async (req, res) => {
   try {
     const username = req.params.username;
     
-    const [cartItems] = await pool.query(
+    const [cartItems] = await req.db.query(
       'SELECT * FROM cart WHERE username = ? ORDER BY created_at DESC',
       [username]
     );
@@ -626,7 +636,7 @@ app.post('/api/signup', async (req, res) => {
     }
 
     // Check if user already exists
-    const [existingUsers] = await pool.query(
+    const [existingUsers] = await req.db.query(
       'SELECT * FROM users WHERE username = ? OR mobile_number = ?',
       [username, mobile_number]
     );
@@ -636,7 +646,7 @@ app.post('/api/signup', async (req, res) => {
     }
 
     // Insert new user
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'INSERT INTO users (username, mobile_number, password) VALUES (?, ?, ?)',
       [username, mobile_number, password]
     );
@@ -670,7 +680,7 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
-    const [users] = await pool.query(
+    const [users] = await req.db.query(
       'SELECT id, username FROM users WHERE username = ? AND password = ?',
       [username, password]
     );
@@ -715,7 +725,7 @@ app.post('/api/reset-password', async (req, res) => {
       });
     }
 
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'UPDATE users SET password = ? WHERE username = ? AND mobile_number = ?',
       [password, username, mobileNumber]
     );
@@ -746,7 +756,7 @@ app.post('/api/reset-password', async (req, res) => {
 // Get user details
 app.get('/api/users/:username', async (req, res) => {
   try {
-    const [user] = await pool.query(
+    const [user] = await req.db.query(
       'SELECT username, mobile_number FROM users WHERE username = ?',
       [req.params.username]
     );
@@ -777,7 +787,7 @@ app.put('/api/users/:username', async (req, res) => {
   try {
     const { username, mobile_number } = req.body;
     
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'UPDATE users SET mobile_number = ? WHERE username = ?',
       [mobile_number, username]
     );
